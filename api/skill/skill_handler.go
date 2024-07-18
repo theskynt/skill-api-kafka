@@ -7,17 +7,20 @@ import (
 )
 
 type handler struct {
-	st storager
+	st       storager
+	producer *Producer
 }
+
+func NewHandler(st storager, producer *Producer) *handler {
+	return &handler{st: st, producer: producer}
+}
+
 
 type ResponseError struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 }
 
-func NewHandler(st storager) *handler {
-	return &handler{st}
-}
 
 func (h handler) GetAllSkill(c *gin.Context) {
 	skills, err := h.st.FindAllSkill()
@@ -70,19 +73,27 @@ func (h handler) CreateSkill(c *gin.Context) {
 		return
 	}
 
-	newSkill, err := h.st.PostSkill(skill)
-	if err != nil {
+	// newSkill, err := h.st.PostSkill(skill)
+	// if err != nil {
+	// 	c.JSON(http.StatusInternalServerError, ResponseError{
+	// 		Status:  "error",
+	// 		Message: "Skill already exist",
+	// 	})
+	// 	return
+	// }
+
+	// c.JSON(http.StatusOK, gin.H{
+	// 	"status": "success",
+	// 	"data":   newSkill,
+	// })
+
+	if err := h.producer.SendMessageWithAction("Insert", skill); err != nil {
 		c.JSON(http.StatusInternalServerError, ResponseError{
 			Status:  "error",
-			Message: "Skill already exist",
+			Message: "Failed to send message to Kafka",
 		})
 		return
 	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"status": "success",
-		"data":   newSkill,
-	})
 }
 
 func (h handler) UpdateSkill(c *gin.Context) {

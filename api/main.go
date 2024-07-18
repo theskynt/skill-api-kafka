@@ -22,7 +22,14 @@ func main() {
 
 	db, closeDB := database.NewPostgres()
 	s := skill.NewStorage(db)
-	h := skill.NewHandler(s)
+
+	producer, err := skill.NewProducer()
+	if err != nil {
+		log.Fatalf("Failed to create Kafka producer: %v", err)
+	}
+	defer producer.Close()
+
+	h := skill.NewHandler(s, producer)
 
 	r := gin.Default()
 
