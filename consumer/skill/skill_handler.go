@@ -40,7 +40,7 @@ func (a *ActionHandler) HandleAction(message message) {
 		}
 	case "DeleteSkill":
 		if res := a.storage.DeleteSkill(message.Key); res != "success" {
-			log.Printf("Failed to delete skill: %v")
+			log.Printf("Failed to delete skill")
 		}
 	default:
 		log.Printf("Unknown action: %s", message.Action)
