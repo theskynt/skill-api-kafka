@@ -15,12 +15,10 @@ func NewHandler(st storager, producer *Producer) *handler {
 	return &handler{st: st, producer: producer}
 }
 
-
 type ResponseError struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
 }
-
 
 func (h handler) GetAllSkill(c *gin.Context) {
 	skills, err := h.st.FindAllSkill()
@@ -73,20 +71,6 @@ func (h handler) CreateSkill(c *gin.Context) {
 		return
 	}
 
-	// newSkill, err := h.st.PostSkill(skill)
-	// if err != nil {
-	// 	c.JSON(http.StatusInternalServerError, ResponseError{
-	// 		Status:  "error",
-	// 		Message: "Skill already exist",
-	// 	})
-	// 	return
-	// }
-
-	// c.JSON(http.StatusOK, gin.H{
-	// 	"status": "success",
-	// 	"data":   newSkill,
-	// })
-
 	if err := h.producer.SendMessageWithAction("Insert", skill); err != nil {
 		c.JSON(http.StatusInternalServerError, ResponseError{
 			Status:  "error",
@@ -94,6 +78,12 @@ func (h handler) CreateSkill(c *gin.Context) {
 		})
 		return
 	}
+
+	// c.JSON(http.StatusOK, gin.H{
+	// 	"status": "success",
+	// 	"data":   newSkill,
+	// })
+
 }
 
 func (h handler) UpdateSkill(c *gin.Context) {
@@ -114,45 +104,19 @@ func (h handler) UpdateSkill(c *gin.Context) {
 		})
 		return
 	}
+
 	skill.Key = key
-	newSkill, err := h.st.EditSkill(skill)
-	if err != nil {
+	if err := h.producer.SendMessageWithAction("Update", skill); err != nil {
 		c.JSON(http.StatusInternalServerError, ResponseError{
 			Status:  "error",
-			Message: "not be able to update skill",
+			Message: "Failed to send message to Kafka",
 		})
 		return
-
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
-		"data":   newSkill,
-	})
-}
-
-func (h handler) DeleteSkill(c *gin.Context) {
-	key := c.Param("key")
-	if key == "" {
-		c.JSON(http.StatusBadRequest, ResponseError{
-			Status:  "error",
-			Message: "key is required",
-		})
-		return
-
-	}
-
-	res := h.st.DeleteSkill(key)
-	if res != "success" {
-		c.JSON(http.StatusInternalServerError, ResponseError{
-			Status:  "error",
-			Message: "not be able to delete skill",
-		})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"status": "success",
-		"data":   "Skill deleted",
+		"data":   skill,
 	})
 }
 
@@ -175,18 +139,17 @@ func (h handler) UpdateSkillName(c *gin.Context) {
 		return
 	}
 
-	newSkill, err := h.st.EditSkillName(key, skill.Name)
-	if err != nil {
+	if err := h.producer.SendMessageWithKey("UpdateName", key, skill); err != nil {
 		c.JSON(http.StatusInternalServerError, ResponseError{
 			Status:  "error",
-			Message: "not be able to update skill name",
+			Message: "Failed to send message to Kafka",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
-		"data":   newSkill,
+		"data":   skill,
 	})
 }
 
@@ -209,18 +172,17 @@ func (h handler) UpdateSkillDescription(c *gin.Context) {
 		return
 	}
 
-	newSkill, err := h.st.EditSkillDescription(key, skill.Description)
-	if err != nil {
+	if err := h.producer.SendMessageWithKey("UpdateDescription", key, skill); err != nil {
 		c.JSON(http.StatusInternalServerError, ResponseError{
 			Status:  "error",
-			Message: "not be able to update skill description",
+			Message: "Failed to send message to Kafka",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
-		"data":   newSkill,
+		"data":   skill,
 	})
 }
 
@@ -243,18 +205,17 @@ func (h handler) UpdateSkillLogo(c *gin.Context) {
 		return
 	}
 
-	newSkill, err := h.st.EditSkillLogo(key, skill.Logo)
-	if err != nil {
+	if err := h.producer.SendMessageWithKey("UpdateLogo", key, skill); err != nil {
 		c.JSON(http.StatusInternalServerError, ResponseError{
 			Status:  "error",
-			Message: "not be able to update skill logo",
+			Message: "Failed to send message to Kafka",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
-		"data":   newSkill,
+		"data":   skill,
 	})
 }
 
@@ -275,17 +236,42 @@ func (h handler) UpdateSkillTag(c *gin.Context) {
 		})
 		return
 	}
-	newSkill, err := h.st.EditSkillTags(key, skill.Tags)
-	if err != nil {
+
+	if err := h.producer.SendMessageWithKey("UpdateTags", key, skill); err != nil {
 		c.JSON(http.StatusInternalServerError, ResponseError{
 			Status:  "error",
-			Message: "not be able to update skill Tags",
+			Message: "Failed to send message to Kafka",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"status": "success",
-		"data":   newSkill,
+		"data":   skill,
+	})
+}
+
+func (h handler) DeleteSkill(c *gin.Context) {
+	key := c.Param("key")
+	if key == "" {
+		c.JSON(http.StatusBadRequest, ResponseError{
+			Status:  "error",
+			Message: "key is required",
+		})
+		return
+
+	}
+
+	if err := h.producer.SendMessageKey("DeleteSkill", key); err != nil {
+		c.JSON(http.StatusInternalServerError, ResponseError{
+			Status:  "error",
+			Message: "Failed to send message to Kafka",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status": "success",
+		"data":   "Skill deleted",
 	})
 }

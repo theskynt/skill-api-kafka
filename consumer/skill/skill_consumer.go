@@ -12,6 +12,7 @@ import (
 
 type message struct {
 	Action string `json:"action"`
+	Key    string `json:"key"`
 	Data   Skill  `json:"data"`
 }
 
@@ -67,6 +68,26 @@ ConsumerLoop:
 			case "Update":
 				if _, err := c.storage.EditSkill(message.Data); err != nil {
 					log.Printf("Failed to update skill: %v", err)
+				}
+			case "UpdateName":
+				if _, err := c.storage.EditSkillName(message.Key, message.Data.Name); err != nil {
+					log.Printf("Failed to update skill name: %v", err)
+				}
+			case "UpdateDescription":
+				if _, err := c.storage.EditSkillDescription(message.Key, message.Data.Description); err != nil {
+					log.Printf("Failed to update skill name: %v", err)
+				}
+			case "UpdateLogo":
+				if _, err := c.storage.EditSkillLogo(message.Key, message.Data.Logo); err != nil {
+					log.Printf("Failed to update skill name: %v", err)
+				}
+			case "UpdateTags":
+				if _, err := c.storage.EditSkillTags(message.Key, message.Data.Tags); err != nil {
+					log.Printf("Failed to update skill name: %v", err)
+				}
+			case "DeleteSkill":
+				if res := c.storage.DeleteSkill(message.Key); res != "success" {
+					log.Printf("Failed to update skill name: %v", err)
 				}
 			default:
 				log.Printf("Unknown action: %s", message.Action)

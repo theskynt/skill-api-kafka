@@ -57,6 +57,57 @@ func (p *Producer) SendMessageWithAction(action string, skill Skill) error {
 	return nil
 }
 
+func (p *Producer) SendMessageWithKey(action, key string, skill Skill) error {
+	message := map[string]interface{}{
+		"action": action,
+		"key":    key,
+		"data":   skill,
+	}
+	messageBytes, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+
+	msg := &sarama.ProducerMessage{
+		Topic: topic,
+		Value: sarama.ByteEncoder(messageBytes),
+	}
+
+	partition, offset, err := p.producer.SendMessage(msg)
+	if err != nil {
+		log.Printf("FAILED to send message: %s\n", err)
+		return err
+	}
+
+	log.Printf("Message sent to partition %d at offset %d\n", partition, offset)
+	return nil
+}
+
+func (p *Producer) SendMessageKey(action, key string) error {
+	message := map[string]interface{}{
+		"action": action,
+		"key":    key,
+	}
+	messageBytes, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+
+	msg := &sarama.ProducerMessage{
+		Topic: topic,
+		Value: sarama.ByteEncoder(messageBytes),
+	}
+
+	partition, offset, err := p.producer.SendMessage(msg)
+	if err != nil {
+		log.Printf("FAILED to send message: %s\n", err)
+		return err
+	}
+
+	log.Printf("Message sent to partition %d at offset %d\n", partition, offset)
+	return nil
+}
+
 func (p *Producer) Close() error {
 	return p.producer.Close()
 }
