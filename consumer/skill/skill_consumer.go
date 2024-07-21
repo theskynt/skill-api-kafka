@@ -17,9 +17,10 @@ type message struct {
 }
 
 type Consumer struct {
-	consumer sarama.Consumer
-	storage  storager
-	topic    string
+	consumer      sarama.Consumer
+	storage       storager
+	topic         string
+	actionHandler *ActionHandler
 }
 
 func NewConsumer(broker, topic string, db storager) (*Consumer, error) {
@@ -33,9 +34,10 @@ func NewConsumer(broker, topic string, db storager) (*Consumer, error) {
 	}
 
 	return &Consumer{
-		consumer: consumer,
-		storage:  db,
-		topic:    topic,
+		consumer:      consumer,
+		storage:       db,
+		topic:         topic,
+		actionHandler: NewActionHandler(db),
 	}, nil
 }
 
@@ -60,38 +62,7 @@ ConsumerLoop:
 				continue
 			}
 
-			switch message.Action {
-			case "Insert":
-				if _, err := c.storage.PostSkill(message.Data); err != nil {
-					log.Printf("Failed to insert skill: %v", err)
-				}
-			case "Update":
-				if _, err := c.storage.EditSkill(message.Data); err != nil {
-					log.Printf("Failed to update skill: %v", err)
-				}
-			case "UpdateName":
-				if _, err := c.storage.EditSkillName(message.Key, message.Data.Name); err != nil {
-					log.Printf("Failed to update skill name: %v", err)
-				}
-			case "UpdateDescription":
-				if _, err := c.storage.EditSkillDescription(message.Key, message.Data.Description); err != nil {
-					log.Printf("Failed to update skill name: %v", err)
-				}
-			case "UpdateLogo":
-				if _, err := c.storage.EditSkillLogo(message.Key, message.Data.Logo); err != nil {
-					log.Printf("Failed to update skill name: %v", err)
-				}
-			case "UpdateTags":
-				if _, err := c.storage.EditSkillTags(message.Key, message.Data.Tags); err != nil {
-					log.Printf("Failed to update skill name: %v", err)
-				}
-			case "DeleteSkill":
-				if res := c.storage.DeleteSkill(message.Key); res != "success" {
-					log.Printf("Failed to update skill name: %v", err)
-				}
-			default:
-				log.Printf("Unknown action: %s", message.Action)
-			}
+			c.actionHandler.HandleAction(message)
 			consumed++
 			log.Printf("Consumed message: %s", msg.Value)
 		case err := <-partitionConsumer.Errors():
